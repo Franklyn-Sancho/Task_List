@@ -1,7 +1,11 @@
+use chrono::NaiveTime;
+use colored::*;
+use prettytable::row;
+use prettytable::{Cell, Row, Table};
 use std::io::{self, Write};
 
 struct TodoList {
-    tasks: Vec<String>,
+    tasks: Vec<(String, NaiveTime)>,
 }
 
 impl TodoList {
@@ -9,15 +13,22 @@ impl TodoList {
         TodoList { tasks: Vec::new() }
     }
 
-    fn add_task(&mut self, task: String) {
-        self.tasks.push(task)
+    fn add_task(&mut self, task: String, time: NaiveTime) {
+        self.tasks.push((task, time));
+        println!("Tarefa adicionada com sucesso")
     }
 
     fn list_tasks(&self) {
-        for (i, task) in self.tasks.iter().enumerate() {
-            println!("Essas são as suas listas: ");
-            println!("{}: {}", i + 1, task)
+        let mut table = Table::new();
+        table.add_row(row!["#", "tarefa", "Hora"]);
+        for (i, (task, time)) in self.tasks.iter().enumerate() {
+            table.add_row(Row::new(vec![
+                Cell::new(&(i + 1).to_string()),
+                Cell::new(task),
+                Cell::new(&time.format("%H:%M").to_string()),
+            ]));
         }
+        table.printstd();
     }
 
     fn remove_task(&mut self, index: usize) {
@@ -31,11 +42,14 @@ fn main() {
 
     loop {
         input.clear();
-        println!("Menu da aplicação");
-        println!("1. Adicionar tarefa");
-        println!("2. Listar tarefas");
-        println!("3. Remover tarefa");
-        println!("4. Sair");
+        let mut table = Table::new();
+        table.set_titles(row!["Menu da da aplicação: ".green().bold()]);
+        table.add_row(row!["1. Adicionar tarefa".blue()]);
+        table.add_row(row!["2. Listar tarefas".blue()]);
+        table.add_row(row!["3. Remover tarefa".blue()]);
+        table.add_row(row!["4. Sair".bright_red()]);
+        table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+        table.printstd();
         print!("Escolha uma opção: ");
         io::stdout().flush().unwrap();
 
@@ -45,10 +59,18 @@ fn main() {
         match choice {
             1 => {
                 input.clear();
-                print!("Digite a tarefa: ");
+                print!("Digite a sua tarefa: ");
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
-                todo_list.add_task(input.trim().to_string());
+                let task = input.trim().to_string();
+
+                input.clear();
+                print!("Digite a hora da tarefa (formato HH:MM): ");
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                let time = NaiveTime::parse_from_str(input.trim(), "%H:%M").unwrap();
+
+                todo_list.add_task(task, time);
             }
             2 => todo_list.list_tasks(),
             3 => {
