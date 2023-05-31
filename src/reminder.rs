@@ -1,4 +1,4 @@
-use chrono::{NaiveTime, Timelike, Datelike, Utc};
+/* use chrono::{NaiveTime, Timelike, Datelike, Utc};
 use job_scheduler::{Job, JobScheduler};
 
 pub fn schedule_reminder(sched: &mut JobScheduler, task: String, reminder_time: NaiveTime) {
@@ -17,4 +17,4 @@ pub fn schedule_reminder(sched: &mut JobScheduler, task: String, reminder_time: 
             println!("Lembrete: sua tarefa '{}' está agendada para agora", task)
         },
     ));
-}
+} */

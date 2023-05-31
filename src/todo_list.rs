@@ -6,7 +6,7 @@ use prettytable::row;
 use prettytable::{Cell, Row, Table};
 use std::io::{self, Write};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Priority {
     Baixa,
     Media,
@@ -22,44 +22,50 @@ impl TodoList {
         TodoList { tasks: Vec::new() }
     }
 
+    pub fn read_user_input(&self, prompt: &str) -> String {
+        let mut input = String::new();
+        print!("{}", prompt);
+        io::stdout().flush().unwrap();
+        io::stdin().read_line(&mut input).unwrap();
+        return input.trim().to_string();
+    }
+
     /* pub fn set_reminder(&self, sched: &mut JobScheduler, index: usize, reminder_time: NaiveTime) {
         let task = self.tasks[index].0.clone();
         schedule_reminder(sched, task, reminder_time)
     } */
 
-    pub fn add_task(&mut self, task: String, time: NaiveTime, priority: Priority) {
+    pub fn add_task(&mut self, task: String, time: NaiveTime, priority: Priority) -> bool {
         self.tasks.push((task, time, priority));
-        println!("Tarefa adicionada com sucesso")
+        true
+    }
+
+    fn read_task_time(&mut self) -> NaiveTime {
+        loop {
+            let time_str = self.read_user_input("Digite a hora da tarefa (formato HH:MM): ");
+            match NaiveTime::parse_from_str(&time_str, "%H:%M") {
+                Ok(time) => return time,
+                Err(_) => println!("Hora inválida. Por favor, tente novamente."),
+            }
+        }
+    }
+
+    fn read_task_priority(&mut self) -> Priority {
+        loop {
+            let priority_str = self.read_user_input("Escolha a prioridade (Baixa, Media, Alta): ");
+            match priority_str.to_lowercase().as_str() {
+                "baixa" => return Priority::Baixa,
+                "media" => return Priority::Media,
+                "alta" => return Priority::Alta,
+                _ => println!("Prioridade inválida. Por favor, tente novamente."),
+            }
+        }
     }
 
     pub fn read_task(&mut self, /* sched: &mut JobScheduler */) -> (String, NaiveTime, Priority) {
-        let mut input = String::new();
-
-        input.clear();
-        print!("Digite a sua tarefa: ");
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut input).unwrap(); //ler a entrada do usuário
-        let task = input.trim().to_string();
-
-        input.clear();
-        print!("Digite a hora da tarefa (formato HH:MM): ");
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut input).unwrap();
-        let time = NaiveTime::parse_from_str(input.trim(), "%H:%M").unwrap();
-
-        /* self.set_reminder(sched, self.tasks.len(), time); */
-
-        input.clear();
-        print!("Escolha a prioridade (Baixa, Media, Alta): ");
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut input).unwrap();
-        let priority = match input.trim().to_lowercase().as_str() {
-            "baixa" => Priority::Baixa,
-            "media" => Priority::Media,
-            "alta" => Priority::Alta,
-            _ => panic!("Prioridade Inválida"),
-        };
-
+        let task = self.read_user_input("Digite a sua tarefa: ");
+        let time = self.read_task_time();
+        let priority = self.read_task_priority();
         (task, time, priority)
     }
 
