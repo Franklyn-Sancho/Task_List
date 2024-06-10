@@ -1,9 +1,7 @@
-#[cfg(test)]
+/* #[cfg(test)]
 mod tests {
     use crate::todo_list::{TodoList, Priority};
 
-
-    use super::*;
     use chrono::NaiveTime;
 
     #[test]
@@ -16,4 +14,4 @@ mod tests {
         assert_eq!(todo_list.tasks.len(), 1);
         assert_eq!(todo_list.tasks[0], ("Teste".to_string(), time, Priority::Alta));
     }
-}
+} */

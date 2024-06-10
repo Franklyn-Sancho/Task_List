@@ -37,8 +37,8 @@ fn main() {
 
         match choice {
             1 => {
-                let (task, time, priority) = todo_list.read_task();
-                if todo_list.add_task(task, time, priority) {
+                let (task, date, time, priority) = todo_list.read_task();
+                if todo_list.add_task(task, date, time, priority) {
                     println!("tarefa adicionada com sucesso");
                 } else {
                     println!("Erro ao adicionar tarefa");
@@ -53,8 +53,8 @@ fn main() {
                         Err(_) => println!("Índice inválido. Por favor, tente novamente."),
                     }
                 };
-                let (task, time, priority) = todo_list.read_task();
-                todo_list.tasks[index - 1] = (task, time, priority);
+                let (task, date, time, priority) = todo_list.read_task();
+                todo_list.tasks[index - 1] = (task, date, time, priority);
             }
             4 => {
                 input.clear();
