@@ -8,6 +8,8 @@ use todo_list::TodoList;
 mod reminder;
 mod todo_list;
 mod todo_list_tests;
+mod database;
+mod model;
 
 fn display_menu() {
     let mut table = Table::new();
