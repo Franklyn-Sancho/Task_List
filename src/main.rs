@@ -1,7 +1,9 @@
 use colored::*;
+use database::Database;
 /* use job_scheduler::{Job, JobScheduler}; */
 use prettytable::row;
 use prettytable::Table;
+use rusqlite::Connection;
 use std::io::{self, Write};
 use todo_list::TodoList;
 
@@ -24,6 +26,15 @@ fn display_menu() {
 }
 
 fn main() {
+
+    let db = Database::new("tasks.db");
+
+    db.create_tables();
+
+    menu(&db);
+}
+
+fn menu(db: &Database) {
     let mut todo_list = TodoList::new();
     let mut input = String::new();
     /* let mut sched = JobScheduler::new(); */
@@ -40,7 +51,7 @@ fn main() {
         match choice {
             1 => {
                 let (task, date, time, priority) = todo_list.read_task();
-                if todo_list.add_task(task, date, time, priority) {
+                if todo_list.add_task(&db, task, date, time, &priority) {
                     println!("tarefa adicionada com sucesso");
                 } else {
                     println!("Erro ao adicionar tarefa");

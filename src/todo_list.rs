@@ -4,7 +4,12 @@ use colored::*;
 /* use job_scheduler::JobScheduler; */
 use prettytable::row;
 use prettytable::{Cell, Row, Table};
+use rusqlite::types::{ToSqlOutput, Value};
+use rusqlite::{params, ToSql};
+use std::fmt::Debug;
 use std::io::{self, Write};
+
+use crate::database::Database;
 
 #[derive(Debug, PartialEq)]
 pub enum Priority {
@@ -15,6 +20,16 @@ pub enum Priority {
 
 pub struct TodoList {
     pub tasks: Vec<(String, NaiveDate, NaiveTime, Priority)>,
+
+}
+impl ToSql for Priority {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
+        match self {
+            Priority::Baixa => Ok(ToSqlOutput::from("Baixa")),
+            Priority::Media => Ok(ToSqlOutput::from("Média")),
+            Priority::Alta => Ok(ToSqlOutput::from("Alta")),
+        }
+    }
 }
 
 impl TodoList {
@@ -30,21 +45,33 @@ impl TodoList {
         return input.trim().to_string();
     }
 
-    /* pub fn set_reminder(&self, sched: &mut JobScheduler, index: usize, reminder_time: NaiveTime) {
-        let task = self.tasks[index].0.clone();
-        schedule_reminder(sched, task, reminder_time)
-    } */
 
     pub fn add_task(
         &mut self,
+        db: &Database,
         task: String,
         date: NaiveDate,
         time: NaiveTime,
-        priority: Priority,
+        priority: &Priority,
     ) -> bool {
-        self.tasks.push((task, date, time, priority));
-        true
+        let date_str = date.format("%Y-%m-%d").to_string();
+        let time_str = time.format("%H:%M:%S").to_string();
+        let id = uuid::Uuid::new_v4().to_string();
+    
+        let result = db.conn.execute(
+            "INSERT INTO tasks (id, name, date, time, priority) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, task, date_str, time_str, priority],
+        );
+    
+        match result {
+            Ok(_) => true,
+            Err(err) => {
+                println!("Erro ao inserir tarefa no banco de dados: {}", err);
+                false
+            }
+        }
     }
+    
 
 
     fn read_task_data(&mut self) -> NaiveDate {
