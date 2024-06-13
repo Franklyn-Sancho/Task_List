@@ -4,7 +4,7 @@ use colored::*;
 /* use job_scheduler::JobScheduler; */
 use prettytable::row;
 use prettytable::{Cell, Row, Table};
-use rusqlite::types::{ToSqlOutput, Value};
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef};
 use rusqlite::{params, ToSql};
 use std::fmt::Debug;
 use std::io::{self, Write};
@@ -20,14 +20,26 @@ pub enum Priority {
 
 pub struct TodoList {
     pub tasks: Vec<(String, NaiveDate, NaiveTime, Priority)>,
-
 }
+
 impl ToSql for Priority {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
         match self {
             Priority::Baixa => Ok(ToSqlOutput::from("Baixa")),
             Priority::Media => Ok(ToSqlOutput::from("Média")),
             Priority::Alta => Ok(ToSqlOutput::from("Alta")),
+        }
+    }
+}
+
+impl FromSql for Priority {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str() {
+            Ok("Baixa") => Ok(Priority::Baixa),
+            Ok("Média") => Ok(Priority::Media),
+            Ok("Alta") => Ok(Priority::Alta),
+            Ok(_) => Err(FromSqlError::InvalidType),
+            Err(_) => Err(FromSqlError::InvalidType),
         }
     }
 }
@@ -45,7 +57,6 @@ impl TodoList {
         return input.trim().to_string();
     }
 
-
     pub fn add_task(
         &mut self,
         db: &Database,
@@ -57,12 +68,12 @@ impl TodoList {
         let date_str = date.format("%Y-%m-%d").to_string();
         let time_str = time.format("%H:%M:%S").to_string();
         let id = uuid::Uuid::new_v4().to_string();
-    
+
         let result = db.conn.execute(
             "INSERT INTO tasks (id, name, date, time, priority) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![id, task, date_str, time_str, priority],
         );
-    
+
         match result {
             Ok(_) => true,
             Err(err) => {
@@ -71,8 +82,6 @@ impl TodoList {
             }
         }
     }
-    
-
 
     fn read_task_data(&mut self) -> NaiveDate {
         loop {
@@ -141,26 +150,43 @@ impl TodoList {
         (task, date, time, priority)
     }
 
-    pub fn list_tasks(&self) {
+    pub fn list_tasks(&self, db: &Database) {
+        let mut tasks = db
+            .conn
+            .prepare("SELECT name, date, time, priority FROM tasks")
+            .unwrap();
+        let tasks_iter = tasks
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?, 
+                    row.get::<_, String>(1)?, 
+                    row.get::<_, String>(2)?, 
+                    row.get::<_, Priority>(3)?
+                ))
+            })
+            .unwrap();
+    
         let mut table = Table::new();
         table.add_row(row!["#", "tarefa", "Data", "Hora", "Prioridade"]);
-        for (i, (task, date, time, priority)) in self.tasks.iter().enumerate() {
+        for (i, task_row) in tasks_iter.enumerate() {
+            let (task, date, time, priority) = task_row.unwrap();
             let priority_str = match priority {
                 Priority::Baixa => "baixa".green(),
                 Priority::Media => "media".yellow(),
                 Priority::Alta => "alta".bright_red(),
             };
-
+    
             table.add_row(Row::new(vec![
                 Cell::new(&(i + 1).to_string()),
-                Cell::new(task),
-                Cell::new(&date.format("%d-%m-%Y").to_string()),
-                Cell::new(&time.format("%H:%M").to_string()),
+                Cell::new(&task),
+                Cell::new(&date),
+                Cell::new(&time),
                 Cell::new(&priority_str.to_string()),
             ]));
         }
         table.printstd();
     }
+    
 
     pub fn remove_task(&mut self, index: usize) {
         self.tasks.remove(index - 1);

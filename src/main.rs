@@ -57,13 +57,13 @@ fn menu(db: &Database) {
                     println!("Erro ao adicionar tarefa");
                 }
             }
-            2 => todo_list.list_tasks(),
+            2 => todo_list.list_tasks(&db),
             3 => {
                 let index = loop {
                     let index_str = todo_list.read_user_input("Digite o número da tarefa: ");
                     match index_str.parse::<usize>() {
                         Ok(index) => break index,
-                        Err(_) => println!("Índice inválido. Por favor, tente novamente."),
+                        Err(_) => println!("Invalid Index. Please, try again."),
                     }
                 };
                 let (task, date, time, priority) = todo_list.read_task();
