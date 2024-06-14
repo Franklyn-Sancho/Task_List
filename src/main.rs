@@ -7,11 +7,11 @@ use rusqlite::Connection;
 use std::io::{self, Write};
 use todo_list::TodoList;
 
+mod database;
+mod model;
 mod reminder;
 mod todo_list;
 mod todo_list_tests;
-mod database;
-mod model;
 
 fn display_menu() {
     let mut table = Table::new();
@@ -26,7 +26,6 @@ fn display_menu() {
 }
 
 fn main() {
-
     let db = Database::new("tasks.db");
 
     db.create_tables();
@@ -70,12 +69,13 @@ fn menu(db: &Database) {
                 todo_list.tasks[index - 1] = (task, date, time, priority);
             }
             4 => {
-                input.clear();
+                let name = todo_list.read_user_input("digite o nome da tarefa: ");
+                todo_list.remove_task(db, &name);
+                /*  input.clear();
                 print!("Digite o numero da tarefa: ");
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
-                let index: usize = input.trim().parse().unwrap();
-                todo_list.remove_task(index - 1);
+                todo_list.remove_task(index - 1); */
             }
             5 => break,
             _ => continue,

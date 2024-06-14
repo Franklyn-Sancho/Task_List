@@ -4,6 +4,7 @@ use colored::*;
 /* use job_scheduler::JobScheduler; */
 use prettytable::row;
 use prettytable::{Cell, Row, Table};
+use rusqlite::ffi::Error;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef};
 use rusqlite::{params, ToSql};
 use std::fmt::Debug;
@@ -13,9 +14,9 @@ use crate::database::Database;
 
 #[derive(Debug, PartialEq)]
 pub enum Priority {
-    Baixa,
-    Media,
-    Alta,
+    Low,
+    Medium,
+    High,
 }
 
 pub struct TodoList {
@@ -25,9 +26,9 @@ pub struct TodoList {
 impl ToSql for Priority {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
         match self {
-            Priority::Baixa => Ok(ToSqlOutput::from("Baixa")),
-            Priority::Media => Ok(ToSqlOutput::from("Média")),
-            Priority::Alta => Ok(ToSqlOutput::from("Alta")),
+            Priority::Low => Ok(ToSqlOutput::from("Low")),
+            Priority::Medium => Ok(ToSqlOutput::from("Medium")),
+            Priority::High => Ok(ToSqlOutput::from("High")),
         }
     }
 }
@@ -35,9 +36,9 @@ impl ToSql for Priority {
 impl FromSql for Priority {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value.as_str() {
-            Ok("Baixa") => Ok(Priority::Baixa),
-            Ok("Média") => Ok(Priority::Media),
-            Ok("Alta") => Ok(Priority::Alta),
+            Ok("Low") => Ok(Priority::Low),
+            Ok("Medium") => Ok(Priority::Medium),
+            Ok("High") => Ok(Priority::High),
             Ok(_) => Err(FromSqlError::InvalidType),
             Err(_) => Err(FromSqlError::InvalidType),
         }
@@ -77,10 +78,7 @@ impl TodoList {
         match result {
             Ok(_) => true,
             Err(err) => {
-                println!(
-                    "error when inserting task into database: {}",
-                    err
-                );
+                println!("error when inserting task into database: {}", err);
                 false
             }
         }
@@ -95,7 +93,7 @@ impl TodoList {
                     let now = Local::now().date_naive();
 
                     if date < now {
-                        println!("The task date cannot be later than the current date")
+                        println!("The task date cannot be earlier than the current date")
                     } else {
                         return date;
                     }
@@ -117,13 +115,13 @@ impl TodoList {
                     let now = Local::now().time();
 
                     if time < now {
-                        println!("A data da tarefa não pode ser anterior a data atual")
+                        println!("The task time cannot be earlier than the current time")
                     } else {
                         return time;
                     }
                 }
                 Err(_) => {
-                    println!("Horário inválido, por favor tente novamente");
+                    println!("Invalid Time. Please, try again");
                     continue;
                 }
             }
@@ -132,12 +130,13 @@ impl TodoList {
 
     fn read_task_priority(&mut self) -> Priority {
         loop {
-            let priority_str = self.read_user_input("Escolha a prioridade (Baixa, Media, Alta): ");
+            let priority_str =
+                self.read_user_input("Enter the priority of the task  (Low, Medium, High): ");
             match priority_str.to_lowercase().as_str() {
-                "baixa" => return Priority::Baixa,
-                "media" => return Priority::Media,
-                "alta" => return Priority::Alta,
-                _ => println!("Prioridade inválida. Por favor, tente novamente."),
+                "low" => return Priority::Low,
+                "medium" => return Priority::Medium,
+                "high" => return Priority::High,
+                _ => println!("Invalid Priority. Please, try again."),
             }
         }
     }
@@ -147,7 +146,7 @@ impl TodoList {
     pub fn read_task(
         &mut self, /* sched: &mut JobScheduler */
     ) -> (String, NaiveDate, NaiveTime, Priority) {
-        let task = self.read_user_input("Digite a sua tarefa: ");
+        let task = self.read_user_input("Enter with your task: ");
         let date = self.read_task_data();
         let time = self.read_task_time();
 
@@ -172,13 +171,13 @@ impl TodoList {
             .unwrap();
 
         let mut table = Table::new();
-        table.add_row(row!["#", "tarefa", "Data", "Hora", "Prioridade"]);
+        table.add_row(row!["#", "Task", "Date", "Time", "Priority"]);
         for (i, task_row) in tasks_iter.enumerate() {
             let (task, date, time, priority) = task_row.unwrap();
             let priority_str = match priority {
-                Priority::Baixa => "baixa".green(),
-                Priority::Media => "media".yellow(),
-                Priority::Alta => "alta".bright_red(),
+                Priority::Low => "low".green(),
+                Priority::Medium => "medium".yellow(),
+                Priority::High => "high".bright_red(),
             };
 
             table.add_row(Row::new(vec![
@@ -192,7 +191,19 @@ impl TodoList {
         table.printstd();
     }
 
-    pub fn remove_task(&mut self, index: usize) {
+    /* pub fn remove_task(&mut self, index: usize) {
         self.tasks.remove(index - 1);
+    } */
+
+    pub fn remove_task(&mut self, db: &Database, name: &str) {
+        loop {
+            match db
+                .conn
+                .execute("DELETE FROM tasks WHERE name = ?1", params![name])
+            {
+                Ok(_) => println!("The task was deleted successfully"),
+                Err(e) => println!("Erro ao deletar a task {}", e),
+            }
+        }
     }
 }
