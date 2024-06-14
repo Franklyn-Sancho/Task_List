@@ -77,7 +77,10 @@ impl TodoList {
         match result {
             Ok(_) => true,
             Err(err) => {
-                println!("Erro ao inserir tarefa no banco de dados: {}", err);
+                println!(
+                    "error when inserting task into database: {}",
+                    err
+                );
                 false
             }
         }
@@ -85,20 +88,20 @@ impl TodoList {
 
     fn read_task_data(&mut self) -> NaiveDate {
         loop {
-            let date_str = self.read_user_input("Digite a data da tarefa (formato 30-12-1992): ");
+            let date_str = self.read_user_input("Enter the date of the task (12-30-1992 format): ");
 
             match NaiveDate::parse_from_str(&date_str, "%d-%m-%Y") {
                 Ok(date) => {
                     let now = Local::now().date_naive();
 
                     if date < now {
-                        println!("A data da tarefa não pode ser enterior a data atual")
+                        println!("The task date cannot be later than the current date")
                     } else {
                         return date;
                     }
                 }
                 Err(_) => {
-                    println!("Data inválida. Por favor, tente novamente.");
+                    println!("Invalid Date. Please, try again");
                     continue;
                 }
             }
@@ -139,6 +142,8 @@ impl TodoList {
         }
     }
 
+    //ESTÁ DANDO ERRO PORQUE EXISTEM VALORES DIFERENTES NO BANCO DE DADOS
+
     pub fn read_task(
         &mut self, /* sched: &mut JobScheduler */
     ) -> (String, NaiveDate, NaiveTime, Priority) {
@@ -158,14 +163,14 @@ impl TodoList {
         let tasks_iter = tasks
             .query_map([], |row| {
                 Ok((
-                    row.get::<_, String>(0)?, 
-                    row.get::<_, String>(1)?, 
-                    row.get::<_, String>(2)?, 
-                    row.get::<_, Priority>(3)?
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Priority>(3)?,
                 ))
             })
             .unwrap();
-    
+
         let mut table = Table::new();
         table.add_row(row!["#", "tarefa", "Data", "Hora", "Prioridade"]);
         for (i, task_row) in tasks_iter.enumerate() {
@@ -175,7 +180,7 @@ impl TodoList {
                 Priority::Media => "media".yellow(),
                 Priority::Alta => "alta".bright_red(),
             };
-    
+
             table.add_row(Row::new(vec![
                 Cell::new(&(i + 1).to_string()),
                 Cell::new(&task),
@@ -186,7 +191,6 @@ impl TodoList {
         }
         table.printstd();
     }
-    
 
     pub fn remove_task(&mut self, index: usize) {
         self.tasks.remove(index - 1);

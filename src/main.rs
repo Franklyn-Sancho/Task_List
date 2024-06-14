@@ -15,12 +15,12 @@ mod model;
 
 fn display_menu() {
     let mut table = Table::new();
-    table.set_titles(row!["Menu da da aplicação: ".green().bold()]);
-    table.add_row(row!["1. Adicionar tarefa".blue()]);
-    table.add_row(row!["2. Listar tarefas".blue()]);
-    table.add_row(row!["3. Editar tarefa".blue()]);
-    table.add_row(row!["4. Remover tarefa".blue()]);
-    table.add_row(row!["5. Sair".bright_red()]);
+    table.set_titles(row!["Task List Menu: ".green().bold()]);
+    table.add_row(row!["1. Add Task".blue()]);
+    table.add_row(row!["2. List Tasks".blue()]);
+    table.add_row(row!["3. Update Tasks ".blue()]);
+    table.add_row(row!["4. Remove Tasks".blue()]);
+    table.add_row(row!["5. Exit".bright_red()]);
     table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
     table.printstd();
 }
@@ -42,7 +42,7 @@ fn menu(db: &Database) {
     loop {
         input.clear();
         display_menu();
-        print!("Escolha uma opção: ");
+        print!("Choice your option: ");
         io::stdout().flush().unwrap();
 
         io::stdin().read_line(&mut input).unwrap();
@@ -52,9 +52,9 @@ fn menu(db: &Database) {
             1 => {
                 let (task, date, time, priority) = todo_list.read_task();
                 if todo_list.add_task(&db, task, date, time, &priority) {
-                    println!("tarefa adicionada com sucesso");
+                    println!("Task Added Successfully");
                 } else {
-                    println!("Erro ao adicionar tarefa");
+                    println!("Error Adding Task");
                 }
             }
             2 => todo_list.list_tasks(&db),
