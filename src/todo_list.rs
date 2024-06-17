@@ -4,9 +4,7 @@ use colored::*;
 /* use job_scheduler::JobScheduler; */
 use prettytable::row;
 use prettytable::{Cell, Row, Table};
-use rusqlite::ffi::Error;
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef};
-use rusqlite::{params, ToSql};
+use rusqlite::params;
 use std::fmt::Debug;
 use std::io::{self, Write};
 
@@ -23,27 +21,7 @@ pub struct TodoList {
     pub tasks: Vec<(String, NaiveDate, NaiveTime, Priority)>,
 }
 
-impl ToSql for Priority {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
-        match self {
-            Priority::Low => Ok(ToSqlOutput::from("Low")),
-            Priority::Medium => Ok(ToSqlOutput::from("Medium")),
-            Priority::High => Ok(ToSqlOutput::from("High")),
-        }
-    }
-}
 
-impl FromSql for Priority {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value.as_str() {
-            Ok("Low") => Ok(Priority::Low),
-            Ok("Medium") => Ok(Priority::Medium),
-            Ok("High") => Ok(Priority::High),
-            Ok(_) => Err(FromSqlError::InvalidType),
-            Err(_) => Err(FromSqlError::InvalidType),
-        }
-    }
-}
 
 impl TodoList {
     pub fn new() -> TodoList {

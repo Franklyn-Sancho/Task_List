@@ -1,17 +1,19 @@
 use colored::*;
 use database::Database;
+use menu::menu;
 /* use job_scheduler::{Job, JobScheduler}; */
 use prettytable::row;
 use prettytable::Table;
-use rusqlite::Connection;
 use std::io::{self, Write};
 use todo_list::TodoList;
 
 mod database;
-mod model;
 mod reminder;
 mod todo_list;
 mod todo_list_tests;
+mod task_list;
+mod menu;
+mod read_input_user;
 
 fn display_menu() {
     let mut table = Table::new();
@@ -30,10 +32,11 @@ fn main() {
 
     db.create_tables();
 
-    menu(&db);
+    /* menu(&db); */
+    menu(&db)
 }
 
-fn menu(db: &Database) {
+/* fn menu(db: &Database) {
     let mut todo_list = TodoList::new();
     let mut input = String::new();
     /* let mut sched = JobScheduler::new(); */
@@ -81,4 +84,4 @@ fn menu(db: &Database) {
             _ => continue,
         }
     }
-}
+} */
