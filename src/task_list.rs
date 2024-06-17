@@ -1,13 +1,10 @@
-use core::task;
-
 use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
 
 use crate::{
-    database::{self, Database},
+    database::Database,
     read_input_user,
-    todo_list::Priority,
 };
 
 pub struct Task {
@@ -16,6 +13,13 @@ pub struct Task {
     pub date: NaiveDate,
     pub time: NaiveTime,
     pub priority: Priority,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
 }
 
 impl Task {

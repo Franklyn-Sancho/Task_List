@@ -6,7 +6,7 @@ use rusqlite::{
     Connection, ToSql,
 };
 
-use crate::{task_list::Task, todo_list::Priority};
+use crate::task_list::{Priority, Task};
 
 pub struct Database {
     pub conn: Connection,
@@ -72,6 +72,18 @@ impl Database {
             tasks.push(task?);
         }
         Ok(tasks)
+    }
+
+    pub fn remove_task(db: &Database, name: &str) {
+        
+            match db
+                .conn
+                .execute("DELETE FROM tasks WHERE name = ?1", params![name])
+            {
+                Ok(_) => println!("The task was deleted successfully"),
+                Err(e) => println!("Erro ao deletar a task {}", e),
+            }
+        
     }
     
 }

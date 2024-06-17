@@ -4,8 +4,6 @@ use menu::menu;
 /* use job_scheduler::{Job, JobScheduler}; */
 use prettytable::row;
 use prettytable::Table;
-use std::io::{self, Write};
-use todo_list::TodoList;
 
 mod database;
 mod reminder;

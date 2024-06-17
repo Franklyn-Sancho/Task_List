@@ -1,7 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{database::Database, display_menu, task_list::Task};
-
+use crate::{database::Database, display_menu, read_input_user::{self, read_user_input}, task_list::Task};
 
 pub fn menu(db: &Database) {
     let mut input = String::new();
@@ -12,7 +11,6 @@ pub fn menu(db: &Database) {
         display_menu();
         print!("Choice your option: ");
         io::stdout().flush().unwrap();
-        
 
         io::stdin().read_line(&mut input).unwrap();
         let choice: u32 = input.trim().parse().unwrap();
@@ -22,7 +20,7 @@ pub fn menu(db: &Database) {
                 let task_details = Task::read_task(); // Supondo que read_task seja uma função que retorna os detalhes da tarefa
                 let (task, date, time, priority) = task_details;
                 let success = Task::create_task(&db, task, date, time, priority);
-                
+
                 if success {
                     println!("Tarefa criada com sucesso!");
                 } else {
@@ -42,8 +40,8 @@ pub fn menu(db: &Database) {
                 todo_list.tasks[index - 1] = (task, date, time, priority); */
             }
             4 => {
-               /*  let name = todo_list.read_user_input("digite o nome da tarefa: ");
-                todo_list.remove_task(db, &name); */
+                let name = read_input_user::read_user_input("digite o nome da tarefa: ");
+                Database::remove_task(&db, &name);
             }
             5 => break,
             _ => continue,
