@@ -1,6 +1,5 @@
 use chrono::{NaiveDate, NaiveTime};
 use rusqlite::{
-    ffi::Error,
     params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
     Connection, ToSql,
@@ -42,13 +41,13 @@ impl Database {
 
     pub fn create_tables(&self) {
         self.conn.execute("CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY, name TEXT NOT NULL, date TEXT NOT NULL, time TEXT NOT NULL, priority TEXT NOT NULL 
+            id TEXT PRIMARY KEY, task TEXT NOT NULL, date TEXT NOT NULL, time TEXT NOT NULL, priority TEXT NOT NULL 
         )",[], ).unwrap();
     }
 
     pub fn insert_task(db: &Database, task: &Task) -> Result<(), rusqlite::Error> {
         // Use parameterized query with model fields
-        let sql = "INSERT INTO tasks (id, name, date, time, priority) VALUES (?1, ?2, ?3, ?4, ?5)";
+        let sql = "INSERT INTO tasks (id, task, date, time, priority) VALUES (?1, ?2, ?3, ?4, ?5)";
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
         let params = params![task.id, task.task, date_str, time_str, task.priority];
@@ -56,8 +55,19 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_tasks(db: &Database) -> Result<Vec<(String, String, String, Priority)>, rusqlite::Error> {
-        let mut stmt = db.conn.prepare("SELECT name, date, time, priority FROM tasks")?;
+    pub fn task_exists(db: &Database, task_name: &str) -> Result<bool, rusqlite::Error> {
+        let sql = "SELECT COUNT(*) FROM tasks WHERE task = ?1";
+        let mut stmt = db.conn.prepare(sql)?;
+        let count: i32 = stmt.query_row(params![task_name], |row| row.get(0))?;
+        Ok(count > 0)
+    }
+
+    pub fn get_tasks(
+        db: &Database,
+    ) -> Result<Vec<(String, String, String, Priority)>, rusqlite::Error> {
+        let mut stmt = db
+            .conn
+            .prepare("SELECT task, date, time, priority FROM tasks")?;
         let tasks_iter = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, String>(0)?,
@@ -66,7 +76,7 @@ impl Database {
                 row.get::<_, Priority>(3)?,
             ))
         })?;
-    
+
         let mut tasks = Vec::new();
         for task in tasks_iter {
             tasks.push(task?);
@@ -74,16 +84,26 @@ impl Database {
         Ok(tasks)
     }
 
-    pub fn remove_task(db: &Database, name: &str) {
-        
-            match db
-                .conn
-                .execute("DELETE FROM tasks WHERE name = ?1", params![name])
-            {
-                Ok(_) => println!("The task was deleted successfully"),
-                Err(e) => println!("Erro ao deletar a task {}", e),
-            }
-        
+    pub fn update_task_database(
+        db: &Database,
+        task_name: &str,
+        task: &Task,
+    ) -> Result<(), rusqlite::Error> {
+        let sql = "UPDATE tasks SET task = ?1, date = ?2, time = ?3, priority = ?4 WHERE task = ?5";
+        let date_str = task.date.format("%Y-%m-%d").to_string();
+        let time_str = task.time.format("%H:%M:%S").to_string();
+        let params = rusqlite::params![task.task, date_str, time_str, task.priority, task_name];
+        db.conn.execute(sql, params)?;
+        Ok(())
     }
-    
+
+    pub fn remove_task(db: &Database, name: &str) {
+        match db
+            .conn
+            .execute("DELETE FROM tasks WHERE task = ?1", params![name])
+        {
+            Ok(_) => println!("The task was deleted successfully"),
+            Err(e) => println!("Erro ao deletar a task {}", e),
+        }
+    }
 }

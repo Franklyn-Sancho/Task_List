@@ -7,7 +7,6 @@ use prettytable::Table;
 
 mod database;
 mod reminder;
-mod todo_list;
 mod todo_list_tests;
 mod task_list;
 mod menu;

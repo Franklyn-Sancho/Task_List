@@ -1,10 +1,11 @@
 use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
+use rusqlite::DatabaseName;
 
 use crate::{
-    database::Database,
-    read_input_user,
+    database::{self, Database},
+    read_input_user::{self, read_user_input},
 };
 
 pub struct Task {
@@ -33,25 +34,44 @@ impl Task {
         }
     }
 
-    pub fn create_task(
-        db: &Database, // mutable reference to Database
-        task: String,
-        date: NaiveDate,
-        time: NaiveTime,
-        priority: Priority,
-    ) -> bool {
+    pub fn create_and_insert_task(db: &Database) {
+        let task_details = Task::read_task();
+        let (task, date, time, priority) = task_details;
+    
         let new_task = Task::new(task, date, time, priority);
-
-        let result = Database::insert_task(&db, &new_task);
-
-        match result {
-            Ok(_) => true,
-            Err(err) => {
-                println!("error when inserting task into database: {}", err);
-                false
-            }
+    
+        if Database::insert_task(db, &new_task).is_ok() {
+            println!("Tarefa criada com sucesso!");
+        } else {
+            println!("Falha ao criar tarefa.");
         }
     }
+
+    pub fn update_task_interactive(db: &Database) {
+    let task = read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
+
+    if let Err(_) = Database::task_exists(db, &task) {
+        println!("Tarefa não existe.");
+        return;
+    }
+
+    let (new_task, date, time, priority) = Task::read_task();
+
+    let updated_task = Task {
+        id: uuid::Uuid::new_v4().to_string(),
+        task: new_task,
+        date,
+        time,
+        priority,
+    };
+
+    if Database::update_task_database(db, &task, &updated_task).is_ok() {
+        println!("Tarefa atualizada com sucesso!");
+    } else {
+        println!("Falha ao atualizar a tarefa.");
+    }
+}
+
 
     pub fn read_task_datetime() -> (NaiveDate, NaiveTime) {
         loop {
@@ -113,7 +133,7 @@ impl Task {
     }
 
     pub fn read_task() -> (String, NaiveDate, NaiveTime, Priority) {
-        let task = read_input_user::read_user_input("Enter with your task: ");
+        let task = read_input_user::read_user_input("Enter with your name task: ");
         let datetime = Task::read_task_datetime();
         let (date, time) = datetime;
 
@@ -148,5 +168,17 @@ impl Task {
             ]));
         }
         table.printstd();
+    }
+
+    pub fn remove_task(db: &Database) {
+        loop {
+            let task = read_input_user::read_user_input("digite o nome da tarefa: ");
+
+            if !Database::task_exists(db, &task).unwrap_or(false) {
+                println!("Task does not exist.");
+                return;
+            }
+            Database::remove_task(&db, &task);
+        }
     }
 }
