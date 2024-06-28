@@ -37,9 +37,9 @@ impl Task {
     pub fn create_and_insert_task(db: &Database) {
         let task_details = Task::read_task();
         let (task, date, time, priority) = task_details;
-    
+
         let new_task = Task::new(task, date, time, priority);
-    
+
         if Database::insert_task(db, &new_task).is_ok() {
             println!("Tarefa criada com sucesso!");
         } else {
@@ -48,75 +48,69 @@ impl Task {
     }
 
     pub fn update_task_interactive(db: &Database) {
-    let task = read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
+        let task =
+            read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
 
-    if let Err(_) = Database::task_exists(db, &task) {
-        println!("Tarefa não existe.");
-        return;
+        if let Err(_) = Database::task_exists(db, &task) {
+            println!("Tarefa não existe.");
+            return;
+        }
+
+        let (new_task, date, time, priority) = Task::read_task();
+
+        let updated_task = Task {
+            id: uuid::Uuid::new_v4().to_string(),
+            task: new_task,
+            date,
+            time,
+            priority,
+        };
+
+        if Database::update_task_database(db, &task, &updated_task).is_ok() {
+            println!("Tarefa atualizada com sucesso!");
+        } else {
+            println!("Falha ao atualizar a tarefa.");
+        }
     }
-
-    let (new_task, date, time, priority) = Task::read_task();
-
-    let updated_task = Task {
-        id: uuid::Uuid::new_v4().to_string(),
-        task: new_task,
-        date,
-        time,
-        priority,
-    };
-
-    if Database::update_task_database(db, &task, &updated_task).is_ok() {
-        println!("Tarefa atualizada com sucesso!");
-    } else {
-        println!("Falha ao atualizar a tarefa.");
-    }
-}
-
 
     pub fn read_task_datetime() -> (NaiveDate, NaiveTime) {
+        let date = Task::read_task_date();
+        let time = Task::read_task_time(&date);
+        (date, time)
+    }
+    
+    fn read_task_date() -> NaiveDate {
         loop {
-            let datetime_str = read_input_user::read_user_input(
-                "Enter the date and time of the task (DD-MM-YYYY HH:MM format): ",
-            );
-
-            // Split into date and time (using next() twice)
-            let mut parts = datetime_str.split_whitespace();
-            let date_str = match parts.next() {
-                Some(date) => date,
-                None => {
-                    println!("Invalid input format. Please enter date and time in DD-MM-YYYY HH:MM format.");
-                    continue;
+            let date_str = read_input_user::read_user_input("Enter the date of the task (DD-MM-YYYY format): ");
+            if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%d-%m-%Y") {
+                let now = Local::now().date_naive();
+                if date >= now {
+                    return date;
+                } else {
+                    println!("The task date cannot be earlier than the current date.");
                 }
-            };
-            let time_str = match parts.next() {
-                Some(time) => time,
-                None => {
-                    println!("Invalid input format. Please enter date and time in DD-MM-YYYY HH:MM format.");
-                    continue;
-                }
-            };
-
-            match (
-                NaiveDate::parse_from_str(date_str, "%d-%m-%Y"),
-                NaiveTime::parse_from_str(time_str, "%H:%M"),
-            ) {
-                (Ok(date), Ok(time)) => {
-                    let now = Local::now();
-                    if date < now.date_naive() {
-                        println!("The task date cannot be earlier than the current date");
-                    } else if time < now.time() && date == now.date_naive() {
-                        println!("The task time cannot be earlier than the current time for the selected date. Please choose a time after the current time for the selected date.");
-                    } else {
-                        return (date, time);
-                    }
-                }
-                (Err(_), _) | (_, Err(_)) => {
-                    println!("Invalid Date or Time. Please, try again");
-                    continue;
-                }
+            } else {
+                println!("Invalid date format. Please enter date in DD-MM-YYYY format.");
             }
         }
     }
+    
+    fn read_task_time(date: &NaiveDate) -> NaiveTime {
+        loop {
+            let time_str = read_input_user::read_user_input("Enter the time of the task (HH:MM format): ");
+            if let Ok(time) = NaiveTime::parse_from_str(&time_str, "%H:%M") {
+                let now = Local::now();
+                if *date == now.date_naive() && time < now.time() {
+                    println!("The task time cannot be earlier than the current time for today. Please choose a time after the current time.");
+                } else {
+                    return time;
+                }
+            } else {
+                println!("Invalid time format. Please enter time in HH:MM format.");
+            }
+        }
+    }
+    
 
     fn read_task_priority() -> Priority {
         loop {
