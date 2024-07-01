@@ -4,13 +4,14 @@ use menu::menu;
 /* use job_scheduler::{Job, JobScheduler}; */
 use prettytable::row;
 use prettytable::Table;
+use task_list::Task;
 
 mod database;
-mod reminder;
-mod todo_list_tests;
-mod task_list;
 mod menu;
 mod read_input_user;
+mod reminder;
+mod task_list;
+mod todo_list_tests;
 
 fn display_menu() {
     let mut table = Table::new();
@@ -30,7 +31,9 @@ fn main() {
     db.create_tables();
 
     /* menu(&db); */
-    menu(&db)
+    menu(&db);
+
+    Task::remove_old_task(&db);
 }
 
 /* fn menu(db: &Database) {

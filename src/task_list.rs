@@ -1,11 +1,13 @@
+use std::time::Duration;
+
 use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
-use rusqlite::DatabaseName;
+use tokio::time;
 
 use crate::{
     database::{self, Database},
-    read_input_user::{self, read_user_input},
+    read_input_user::{self},
 };
 
 pub struct Task {
@@ -14,6 +16,7 @@ pub struct Task {
     pub date: NaiveDate,
     pub time: NaiveTime,
     pub priority: Priority,
+    pub status: Status
 }
 
 #[derive(Debug, PartialEq)]
@@ -23,22 +26,28 @@ pub enum Priority {
     High,
 }
 
+pub enum Status {
+    Pendent,
+    Completed,
+}
+
 impl Task {
-    pub fn new(task: String, date: NaiveDate, time: NaiveTime, priority: Priority) -> Self {
+    pub fn new(task: String, date: NaiveDate, time: NaiveTime, priority: Priority, status: Status) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             task,
             date,
             time,
             priority,
+            status
         }
     }
 
     pub fn create_and_insert_task(db: &Database) {
         let task_details = Task::read_task();
-        let (task, date, time, priority) = task_details;
+        let (task, date, time, priority, status) = task_details;
 
-        let new_task = Task::new(task, date, time, priority);
+        let new_task = Task::new(task, date, time, priority, status);
 
         if Database::insert_task(db, &new_task).is_ok() {
             println!("Tarefa criada com sucesso!");
@@ -56,7 +65,7 @@ impl Task {
             return;
         }
 
-        let (new_task, date, time, priority) = Task::read_task();
+        let (new_task, date, time, priority, status) = Task::read_task();
 
         let updated_task = Task {
             id: uuid::Uuid::new_v4().to_string(),
@@ -64,6 +73,7 @@ impl Task {
             date,
             time,
             priority,
+            status
         };
 
         if Database::update_task_database(db, &task, &updated_task).is_ok() {
@@ -78,10 +88,12 @@ impl Task {
         let time = Task::read_task_time(&date);
         (date, time)
     }
-    
+
     fn read_task_date() -> NaiveDate {
         loop {
-            let date_str = read_input_user::read_user_input("Enter the date of the task (DD-MM-YYYY format): ");
+            let date_str = read_input_user::read_user_input(
+                "Enter the date of the task (DD-MM-YYYY format): ",
+            );
             if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%d-%m-%Y") {
                 let now = Local::now().date_naive();
                 if date >= now {
@@ -94,10 +106,11 @@ impl Task {
             }
         }
     }
-    
+
     fn read_task_time(date: &NaiveDate) -> NaiveTime {
         loop {
-            let time_str = read_input_user::read_user_input("Enter the time of the task (HH:MM format): ");
+            let time_str =
+                read_input_user::read_user_input("Enter the time of the task (HH:MM format): ");
             if let Ok(time) = NaiveTime::parse_from_str(&time_str, "%H:%M") {
                 let now = Local::now();
                 if *date == now.date_naive() && time < now.time() {
@@ -110,7 +123,6 @@ impl Task {
             }
         }
     }
-    
 
     fn read_task_priority() -> Priority {
         loop {
@@ -126,13 +138,28 @@ impl Task {
         }
     }
 
-    pub fn read_task() -> (String, NaiveDate, NaiveTime, Priority) {
+    fn read_task_status() -> Status {
+        loop {
+            let priority_str = read_input_user::read_user_input(
+                "Enter the status of the task  (pending or completed): ",
+            );
+            match priority_str.to_lowercase().as_str() {
+                "pending" => return Status::Pendent,
+                "completed" => return Status::Completed,
+                
+                _ => println!("Invalid Priority. Please, try again."),
+            }
+        }
+    }
+
+    pub fn read_task() -> (String, NaiveDate, NaiveTime, Priority, Status) {
         let task = read_input_user::read_user_input("Enter with your name task: ");
         let datetime = Task::read_task_datetime();
         let (date, time) = datetime;
 
         let priority = Task::read_task_priority();
-        (task, date, time, priority)
+        let status = Task::read_task_status();
+        (task, date, time, priority, status)
     }
 
     pub fn list_tasks(db: &Database) {
@@ -145,12 +172,18 @@ impl Task {
         };
 
         let mut table = Table::new();
-        table.add_row(row!["#", "Task", "Date", "Time", "Priority"]);
-        for (i, (task, date, time, priority)) in tasks.iter().enumerate() {
+        table.add_row(row!["#", "Task", "Date", "Time", "Priority", "Status"]);
+        for (i, (task, date, time, priority, status)) in tasks.iter().enumerate() {
             let priority_str = match priority {
-                Priority::Low => "low".green(),
-                Priority::Medium => "medium".yellow(),
-                Priority::High => "high".bright_red(),
+                Priority::Low => "Low".bold().blue(),
+                Priority::Medium => "Medium".bold().yellow(),
+                Priority::High => "High".bold().bright_red(),
+            };
+
+            let status_str = match status {
+                Status::Pendent => "Pendent".bold(),
+                Status::Completed => "Completed".bold().green(),
+               
             };
 
             table.add_row(Row::new(vec![
@@ -159,6 +192,7 @@ impl Task {
                 Cell::new(date),
                 Cell::new(time),
                 Cell::new(&priority_str.to_string()),
+                Cell::new(&status_str.to_string())
             ]));
         }
         table.printstd();
@@ -173,6 +207,18 @@ impl Task {
                 return;
             }
             Database::remove_task(&db, &task);
+        }
+    }
+
+    pub fn remove_old_task(db: &Database) {
+        loop {
+            let current_date = Local::now().naive_local().date();
+            let current_time = Local::now().naive_local().time();
+            db.remove_task_by_datetime(current_date, current_time);
+
+
+            // Aguarde 1 hora antes de verificar novamente
+            let _ = time::sleep(Duration::from_secs(3600));
         }
     }
 }
