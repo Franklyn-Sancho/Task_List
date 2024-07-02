@@ -1,4 +1,3 @@
-use chrono::{NaiveDate, NaiveTime};
 use rusqlite::{
     params,
     types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
@@ -42,7 +41,7 @@ impl ToSql for Status {
     }
 }
 
-impl FromSql for Status{
+impl FromSql for Status {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value.as_str() {
             Ok("Pendent") => Ok(Status::Pendent),
@@ -65,27 +64,34 @@ impl Database {
         )",[], ).unwrap();
     }
 
-    pub fn insert_task(db: &Database, task: &Task) -> Result<(), rusqlite::Error> {
+    pub fn insert_task(&self, task: &Task) -> Result<(), rusqlite::Error> {
         // Use parameterized query with model fields
-        let sql = "INSERT INTO tasks (id, task, date, time, priority,status) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+        let sql = "INSERT INTO tasks (id, task, date, time, priority, status) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
-        let params = params![task.id, task.task, date_str, time_str, task.priority, task.status];
-        db.conn.execute(sql, params)?;
+        let params = params![
+            task.id,
+            task.task,
+            date_str,
+            time_str,
+            task.priority,
+            task.status
+        ];
+        self.conn.execute(sql, params)?;
         Ok(())
     }
 
-    pub fn task_exists(db: &Database, task_name: &str) -> Result<bool, rusqlite::Error> {
+    pub fn task_exists(&self, task_name: &str) -> Result<bool, rusqlite::Error> {
         let sql = "SELECT COUNT(*) FROM tasks WHERE task = ?1";
-        let mut stmt = db.conn.prepare(sql)?;
+        let mut stmt = self.conn.prepare(sql)?;
         let count: i32 = stmt.query_row(params![task_name], |row| row.get(0))?;
         Ok(count > 0)
     }
 
     pub fn get_tasks(
-        db: &Database,
+        &self,
     ) -> Result<Vec<(String, String, String, Priority, Status)>, rusqlite::Error> {
-        let mut stmt = db
+        let mut stmt = self
             .conn
             .prepare("SELECT task, date, time, priority, status FROM tasks")?;
         let tasks_iter = stmt.query_map([], |row| {
@@ -106,20 +112,35 @@ impl Database {
     }
 
     pub fn update_task_database(
-        db: &Database,
+        &self,
         task_name: &str,
         task: &Task,
     ) -> Result<(), rusqlite::Error> {
         let sql = "UPDATE tasks SET task = ?1, date = ?2, time = ?3, priority = ?4, status = ?5 WHERE task = ?5";
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
-        let params = rusqlite::params![task.task, date_str, time_str, task.priority, task.status, task_name];
-        db.conn.execute(sql, params)?;
+        let params = rusqlite::params![
+            task.task,
+            date_str,
+            time_str,
+            task.priority,
+            task.status,
+            task_name
+        ];
+        self.conn.execute(sql, params)?;
         Ok(())
     }
 
-    pub fn remove_task(db: &Database, name: &str) {
-        match db
+    pub fn update_task_status(&self, task: &str) -> Result<(), rusqlite::Error> {
+        let sql = "UPDATE tasks SET status = ?1 WHERE task = ?2";
+        let status_completed = Status::Completed;
+        let params = rusqlite::params![status_completed, task];
+        self.conn.execute(sql, params)?;
+        Ok(())
+    }
+
+    pub fn remove_task(&self, name: &str) {
+        match self
             .conn
             .execute("DELETE FROM tasks WHERE task = ?1", params![name])
         {
@@ -128,20 +149,19 @@ impl Database {
         }
     }
 
-    pub fn remove_task_by_datetime(&self, date: NaiveDate, time: NaiveTime) {
+    /* pub fn remove_task_by_datetime(&self, date: NaiveDate, time: NaiveTime) {
         let date_str = date.format("%Y-%m-%d").to_string();
         let time_str = time.format("%H:%M:%S").to_string();
-    
+
         let sql = "
         DELETE FROM tasks
         WHERE date < $1
             OR (date = $1 AND time <= $2)";
         let params = [&date_str, &time_str];
-    
+
         match self.conn.execute(sql, params) {
             Ok(_) => println!("Old tasks deleted successfully"),
             Err(e) => println!("Delete task error: {}", e),
         }
-    }
-
+    } */
 }

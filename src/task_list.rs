@@ -1,12 +1,9 @@
-use std::time::Duration;
-
 use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
-use tokio::time;
 
 use crate::{
-    database::{self, Database},
+    database::Database,
     read_input_user::{self},
 };
 
@@ -16,7 +13,7 @@ pub struct Task {
     pub date: NaiveDate,
     pub time: NaiveTime,
     pub priority: Priority,
-    pub status: Status
+    pub status: Status,
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,14 +29,20 @@ pub enum Status {
 }
 
 impl Task {
-    pub fn new(task: String, date: NaiveDate, time: NaiveTime, priority: Priority, status: Status) -> Self {
+    pub fn new(
+        task: String,
+        date: NaiveDate,
+        time: NaiveTime,
+        priority: Priority,
+        status: Status,
+    ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             task,
             date,
             time,
             priority,
-            status
+            status,
         }
     }
 
@@ -49,10 +52,10 @@ impl Task {
 
         let new_task = Task::new(task, date, time, priority, status);
 
-        if Database::insert_task(db, &new_task).is_ok() {
-            println!("Tarefa criada com sucesso!");
+        if db.insert_task(&new_task).is_ok() {
+            println!("Task was added successfully!");
         } else {
-            println!("Falha ao criar tarefa.");
+            println!("Failed to create task.");
         }
     }
 
@@ -60,7 +63,7 @@ impl Task {
         let task =
             read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
 
-        if let Err(_) = Database::task_exists(db, &task) {
+        if let Err(_) = db.task_exists(&task) {
             println!("Tarefa não existe.");
             return;
         }
@@ -73,13 +76,13 @@ impl Task {
             date,
             time,
             priority,
-            status
+            status,
         };
 
-        if Database::update_task_database(db, &task, &updated_task).is_ok() {
-            println!("Tarefa atualizada com sucesso!");
+        if db.update_task_database(&task, &updated_task).is_ok() {
+            println!("Task was updated successfuly!");
         } else {
-            println!("Falha ao atualizar a tarefa.");
+            println!("Failed to update task.");
         }
     }
 
@@ -138,7 +141,7 @@ impl Task {
         }
     }
 
-    fn read_task_status() -> Status {
+    /* fn read_task_status() -> Status {
         loop {
             let priority_str = read_input_user::read_user_input(
                 "Enter the status of the task  (pending or completed): ",
@@ -146,11 +149,11 @@ impl Task {
             match priority_str.to_lowercase().as_str() {
                 "pending" => return Status::Pendent,
                 "completed" => return Status::Completed,
-                
+
                 _ => println!("Invalid Priority. Please, try again."),
             }
         }
-    }
+    } */
 
     pub fn read_task() -> (String, NaiveDate, NaiveTime, Priority, Status) {
         let task = read_input_user::read_user_input("Enter with your name task: ");
@@ -158,12 +161,12 @@ impl Task {
         let (date, time) = datetime;
 
         let priority = Task::read_task_priority();
-        let status = Task::read_task_status();
+        let status = Status::Pendent;
         (task, date, time, priority, status)
     }
 
     pub fn list_tasks(db: &Database) {
-        let tasks = match Database::get_tasks(&db) {
+        let tasks = match db.get_tasks() {
             Ok(tasks) => tasks,
             Err(e) => {
                 println!("Error fetching tasks: {}", e);
@@ -183,7 +186,6 @@ impl Task {
             let status_str = match status {
                 Status::Pendent => "Pendent".bold(),
                 Status::Completed => "Completed".bold().green(),
-               
             };
 
             table.add_row(Row::new(vec![
@@ -192,7 +194,7 @@ impl Task {
                 Cell::new(date),
                 Cell::new(time),
                 Cell::new(&priority_str.to_string()),
-                Cell::new(&status_str.to_string())
+                Cell::new(&status_str.to_string()),
             ]));
         }
         table.printstd();
@@ -202,15 +204,32 @@ impl Task {
         loop {
             let task = read_input_user::read_user_input("digite o nome da tarefa: ");
 
-            if !Database::task_exists(db, &task).unwrap_or(false) {
+            if !db.task_exists(&task).unwrap_or(false) {
                 println!("Task does not exist.");
                 return;
             }
-            Database::remove_task(&db, &task);
+            db.remove_task(&task);
         }
     }
 
-    pub fn remove_old_task(db: &Database) {
+    pub fn complete_task(db: &Database) {
+
+        Task::list_tasks(db);
+
+        loop {
+            let task_complete =
+                read_input_user::read_user_input("qual tarefa você deseja completar: ");
+
+            if !db.task_exists(&task_complete).unwrap_or(false) {
+                println!("Task does not exist.");
+                return;
+            }
+
+            let _ = db.update_task_status(&task_complete);
+        }
+    }
+
+    /* pub fn remove_old_task(db: &Database) {
         loop {
             let current_date = Local::now().naive_local().date();
             let current_time = Local::now().naive_local().time();
@@ -220,5 +239,5 @@ impl Task {
             // Aguarde 1 hora antes de verificar novamente
             let _ = time::sleep(Duration::from_secs(3600));
         }
-    }
+    } */
 }

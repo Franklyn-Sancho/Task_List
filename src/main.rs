@@ -1,10 +1,7 @@
-use colored::*;
 use database::Database;
 use menu::menu;
 /* use job_scheduler::{Job, JobScheduler}; */
-use prettytable::row;
-use prettytable::Table;
-use task_list::Task;
+
 
 mod database;
 mod menu;
@@ -13,17 +10,6 @@ mod reminder;
 mod task_list;
 mod todo_list_tests;
 
-fn display_menu() {
-    let mut table = Table::new();
-    table.set_titles(row!["Task List Menu: ".green().bold()]);
-    table.add_row(row!["1. Add Task".blue()]);
-    table.add_row(row!["2. List Tasks".blue()]);
-    table.add_row(row!["3. Update Tasks ".blue()]);
-    table.add_row(row!["4. Remove Tasks".blue()]);
-    table.add_row(row!["5. Exit".bright_red()]);
-    table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    table.printstd();
-}
 
 fn main() {
     let db = Database::new("tasks.db");
@@ -32,8 +18,6 @@ fn main() {
 
     /* menu(&db); */
     menu(&db);
-
-    Task::remove_old_task(&db);
 }
 
 /* fn menu(db: &Database) {
