@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 
+
 pub fn read_user_input(prompt: &str) -> String {
     let mut input = String::new();
     print!("{}", prompt);

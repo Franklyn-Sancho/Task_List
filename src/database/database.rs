@@ -1,11 +1,12 @@
-use core::task;
 use std::env;
 
 use bytes::BytesMut;
 use dotenv::dotenv;
 use postgres::{types::{to_sql_checked, FromSql, IsNull, ToSql, Type}, Client, Error, NoTls};
 
-use crate::task_list_postgres::{Priority, Status, Task};
+use crate::interfaces::cli::task_list::{Priority, Status, Task};
+
+
 
 
 pub struct Database {

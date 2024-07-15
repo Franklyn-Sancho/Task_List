@@ -2,10 +2,7 @@ use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
 
-use crate::{
-    database::Database,
-    read_input_user::{self},
-};
+use crate::{database::database::Database, utils::read_input_user};
 
 pub struct Task {
     pub id: String,

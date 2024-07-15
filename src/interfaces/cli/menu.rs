@@ -3,7 +3,8 @@ use std::io::{self, Write};
 use colored::Colorize;
 use prettytable::{row, Table};
 
-use crate::{database::Database, task_list_postgres::Task};
+use crate::{database::database::Database, interfaces::cli::task_list::Task};
+
 
 /* use crate::{database::Database, task_list::Task}; */
 
