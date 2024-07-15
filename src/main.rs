@@ -1,23 +1,29 @@
 use database::Database;
 use menu::menu;
-/* use job_scheduler::{Job, JobScheduler}; */
 
 
-mod database;
 mod menu;
 mod read_input_user;
 mod reminder;
-mod task_list;
 mod todo_list_tests;
+mod database;
+mod task_list_postgres;
 
 
 fn main() {
-    let db = Database::new("tasks.db");
+    match Database::new() {
+        Ok(mut db) => {
+            if let Err(e) = db.create_tables() {
+                eprintln!("Error creating tables: {}", e);
+                return;
+            }
 
-    db.create_tables();
-
-    /* menu(&db); */
-    menu(&db);
+            menu(&mut db);
+        }
+        Err(e) => {
+            eprintln!("Error connecting to the database: {}", e);
+        }
+    }
 }
 
 /* fn menu(db: &Database) {

@@ -1,167 +1,184 @@
-use rusqlite::{
-    params,
-    types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
-    Connection, ToSql,
-};
+use core::task;
+use std::env;
 
-use crate::task_list::{Priority, Status, Task};
+use bytes::BytesMut;
+use dotenv::dotenv;
+use postgres::{types::{to_sql_checked, FromSql, IsNull, ToSql, Type}, Client, Error, NoTls};
+
+use crate::task_list_postgres::{Priority, Status, Task};
+
 
 pub struct Database {
-    pub conn: Connection,
+    client: Client
 }
 
 impl ToSql for Priority {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
-        match self {
-            Priority::Low => Ok(ToSqlOutput::from("Low")),
-            Priority::Medium => Ok(ToSqlOutput::from("Medium")),
-            Priority::High => Ok(ToSqlOutput::from("High")),
+    fn to_sql(&self, _ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+        let value = match self {
+            Priority::Low => "Low",
+            Priority::Medium => "Medium",
+            Priority::High => "High",
+        };
+        out.extend_from_slice(value.as_bytes());
+        Ok(IsNull::No)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
+}
+
+impl<'a> FromSql<'a> for Priority {
+    fn from_sql(_ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn  std::error::Error + Sync + Send>> {
+        let value = std::str::from_utf8(raw)?;
+        
+        match value {
+            "Low" => Ok(Priority::Low),
+            "Medium" => Ok(Priority::Medium),
+            "High" => Ok(Priority::High),
+            _ => Err("Invalid priority value".into()),
         }
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as FromSql>::accepts(ty)
     }
 }
 
-impl FromSql for Priority {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value.as_str() {
-            Ok("Low") => Ok(Priority::Low),
-            Ok("Medium") => Ok(Priority::Medium),
-            Ok("High") => Ok(Priority::High),
-            Ok(_) => Err(FromSqlError::InvalidType),
-            Err(_) => Err(FromSqlError::InvalidType),
+
+impl<'a> FromSql<'a> for Status {
+    fn from_sql(_ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+        let value = std::str::from_utf8(raw)?;
+        
+        match value {
+            "Pending" => Ok(Status::Pendent),
+            "Completed" => Ok(Status::Completed),
+            _ => Err("Invalid status value".into()),
         }
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as FromSql>::accepts(ty)
     }
 }
 
 impl ToSql for Status {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
-        match self {
-            Status::Pendent => Ok(ToSqlOutput::from("Pendent")),
-            Status::Completed => Ok(ToSqlOutput::from("Completed")),
-        }
+    fn to_sql(&self, _ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+        let value = match self {
+            Status::Pendent => "Pending",
+            Status::Completed => "Completed",
+        };
+        out.extend_from_slice(value.as_bytes());
+        Ok(IsNull::No)
     }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
 }
 
-impl FromSql for Status {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value.as_str() {
-            Ok("Pendent") => Ok(Status::Pendent),
-            Ok("Completed") => Ok(Status::Completed),
-            Ok(_) => Err(FromSqlError::InvalidType),
-            Err(_) => Err(FromSqlError::InvalidType),
-        }
-    }
-}
 
 impl Database {
-    pub fn new(path: &str) -> Self {
-        let conn = Connection::open(path).unwrap();
-        Self { conn }
+    pub fn new() -> Result<Self, Error> {
+        dotenv().ok();
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        
+        let client = Client::connect(&database_url, NoTls)?;
+        Ok(Self { client })
+
     }
 
-    pub fn create_tables(&self) {
-        self.conn.execute("CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY, task TEXT NOT NULL, date TEXT NOT NULL, time TEXT NOT NULL, priority TEXT NOT NULL, status TEXT NOT NULL
-        )",[], ).unwrap();
+    pub fn create_tables(&mut self) -> Result<(), Error> {
+        self.client.execute(
+            "
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                task TEXT NOT NULL,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                status TEXT NOT NULL
+            )
+            ", &[])?;
+
+            Ok(())
     }
 
-    pub fn insert_task(&self, task: &Task) -> Result<(), rusqlite::Error> {
-        // Use parameterized query with model fields
-        let sql = "INSERT INTO tasks (id, task, date, time, priority, status) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+    pub fn insert_task(&mut self, task: &Task) -> Result<(), Error> {
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
-        let params = params![
-            task.id,
-            task.task,
-            date_str,
-            time_str,
-            task.priority,
-            task.status
-        ];
-        self.conn.execute(sql, params)?;
+
+        self.client.execute(
+            "INSERT INTO tasks (id, task, date, time, priority, status) VALUES ($1, $2, $3, $4, $5, $6)",
+            &[&task.id, &task.task, &date_str, &time_str, &task.priority, &task.status],
+        )?;
         Ok(())
     }
 
-    pub fn task_exists(&self, task_name: &str) -> Result<bool, rusqlite::Error> {
-        let sql = "SELECT COUNT(*) FROM tasks WHERE task = ?1";
-        let mut stmt = self.conn.prepare(sql)?;
-        let count: i32 = stmt.query_row(params![task_name], |row| row.get(0))?;
-        Ok(count > 0)
+    pub fn task_exists(&mut self, task_name: &str) -> Result<bool, Error> {
+        let row = self.client.query_one(
+            "SELECT COUNT(*) FROM tasks WHERE task = $1", 
+            &[&task_name])?;
+            let count: i64 = row.get(0);
+            Ok(count > 0)
     }
+    
+    pub fn get_tasks(&mut self) -> Result<Vec<(String, String, String, Priority, Status)>, Error> {
 
-    pub fn get_tasks(
-        &self,
-    ) -> Result<Vec<(String, String, String, Priority, Status)>, rusqlite::Error> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT task, date, time, priority, status FROM tasks")?;
-        let tasks_iter = stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, Priority>(3)?,
-                row.get::<_, Status>(4)?,
-            ))
-        })?;
-
+        let rows = self.client.query("SELECT task, date, time, priority, status FROM tasks", &[])?;
         let mut tasks = Vec::new();
-        for task in tasks_iter {
-            tasks.push(task?);
+
+        for row in rows {
+            let task = row.get::<_, String>(0);
+            let date = row.get::<_, String>(1);
+            let time = row.get::<_, String>(2);
+            let priority = row.get::<_, Priority>(3);
+            let status = row.get::<_, Status>(4);
+            tasks.push((task, date, time, priority, status));
         }
+
         Ok(tasks)
     }
 
-    pub fn update_task_database(
-        &self,
-        task_name: &str,
-        task: &Task,
-    ) -> Result<(), rusqlite::Error> {
-        let sql = "UPDATE tasks SET task = ?1, date = ?2, time = ?3, priority = ?4, status = ?5 WHERE task = ?5";
+    pub fn update_task_database(&mut self, task_name: &str, task: &Task) -> Result<(), Error> {
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
-        let params = rusqlite::params![
-            task.task,
-            date_str,
-            time_str,
-            task.priority,
-            task.status,
-            task_name
-        ];
-        self.conn.execute(sql, params)?;
+
+        let _ = self.client.execute(
+            "UPDATE tasks SET task = $1, date = $2, time = $3, priority = $4, status = $5 WHERE task = $6", 
+            &[&task.task, &date_str, &time_str, &task.priority, &task.status, &task_name]);
+        
         Ok(())
     }
 
-    pub fn update_task_status(&self, task: &str) -> Result<(), rusqlite::Error> {
-        let sql = "UPDATE tasks SET status = ?1 WHERE task = ?2";
+
+    pub fn update_task_status(&mut self, task: &str) -> Result<(), Error> {
         let status_completed = Status::Completed;
-        let params = rusqlite::params![status_completed, task];
-        self.conn.execute(sql, params)?;
+
+        let _ = self.client.execute(
+            "UPDATE tasks SET status = $1 WHERE task = $2", 
+            &[&status_completed, &task]);
+
         Ok(())
     }
 
-    pub fn remove_task(&self, name: &str) {
+
+    pub fn remove_task(&mut self, name: &str) {
         match self
-            .conn
-            .execute("DELETE FROM tasks WHERE task = ?1", params![name])
+            .client
+            .execute("DELETE FROM tasks WHERE task = $1", &[&name])
         {
             Ok(_) => println!("The task was deleted successfully"),
             Err(e) => println!("delete task error: {}", e),
         }
-    }
+    } 
+        
 
-    /* pub fn remove_task_by_datetime(&self, date: NaiveDate, time: NaiveTime) {
-        let date_str = date.format("%Y-%m-%d").to_string();
-        let time_str = time.format("%H:%M:%S").to_string();
-
-        let sql = "
-        DELETE FROM tasks
-        WHERE date < $1
-            OR (date = $1 AND time <= $2)";
-        let params = [&date_str, &time_str];
-
-        match self.conn.execute(sql, params) {
-            Ok(_) => println!("Old tasks deleted successfully"),
-            Err(e) => println!("Delete task error: {}", e),
-        }
-    } */
 }
+
+   
+

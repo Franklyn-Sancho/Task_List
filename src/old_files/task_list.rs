@@ -2,27 +2,28 @@ use chrono::{Local, NaiveDate, NaiveTime};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
 
-use crate::{
+/* use crate::{
     database::Database,
     read_input_user::{self},
-};
+}; */
 
-pub struct Task {
+/* pub struct Task {
     pub id: String,
     pub task: String,
     pub date: NaiveDate,
     pub time: NaiveTime,
     pub priority: Priority,
     pub status: Status,
-}
+} */
 
-#[derive(Debug, PartialEq)]
+/* #[derive(Debug, PartialEq)]
 pub enum Priority {
     Low,
     Medium,
     High,
 }
 
+#[derive(Debug)]
 pub enum Status {
     Pendent,
     Completed,
@@ -240,4 +241,4 @@ impl Task {
             let _ = time::sleep(Duration::from_secs(3600));
         }
     } */
-}
+} */
