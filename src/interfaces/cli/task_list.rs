@@ -1,26 +1,53 @@
-use chrono::{Local, NaiveDate, NaiveTime};
+use chrono::{Datelike, Local, NaiveDate, NaiveTime, Timelike};
 use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
+use serde::{Deserialize, Serialize};
 
 use crate::{database::database::Database, utils::read_input_user};
 
+
+fn deserialize_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let date_str = String::deserialize(deserializer)?;
+    match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+        Ok(date) => Ok(date),
+        Err(_) => Err(serde::de::Error::custom("Invalid date format")),
+    }
+}
+
+fn deserialize_time<'de, D>(deserializer: D) -> Result<NaiveTime, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let time_str = String::deserialize(deserializer)?;
+    match NaiveTime::parse_from_str(&time_str, "%H:%M:%S") {
+        Ok(time) => Ok(time),
+        Err(_) => Err(serde::de::Error::custom("Invalid time format")),
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Task {
     pub id: String,
     pub task: String,
+    #[serde(deserialize_with = "deserialize_date")]
     pub date: NaiveDate,
+    #[serde(deserialize_with = "deserialize_time")]
     pub time: NaiveTime,
     pub priority: Priority,
     pub status: Status,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Priority {
     Low,
     Medium,
     High
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Status {
     Pendent,
     Completed,
@@ -189,8 +216,8 @@ impl Task {
             table.add_row(Row::new(vec![
                 Cell::new(&(i + 1).to_string()),
                 Cell::new(task),
-                Cell::new(date),
-                Cell::new(time),
+                Cell::new(&date.to_string()),
+                Cell::new(&time.to_string()),
                 Cell::new(&priority_str.to_string()),
                 Cell::new(&status_str.to_string()),
             ]));

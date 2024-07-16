@@ -15,6 +15,8 @@ dependencies = [
  "postgres",
  "prettytable-rs",
  "rusqlite",
+ "serde",
+ "serde_json",
  "text_io",
  "tokio",
  "uuid 1.8.0",

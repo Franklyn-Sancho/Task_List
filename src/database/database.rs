@@ -6,9 +6,6 @@ use postgres::{types::{to_sql_checked, FromSql, IsNull, ToSql, Type}, Client, Er
 
 use crate::interfaces::cli::task_list::{Priority, Status, Task};
 
-
-
-
 pub struct Database {
     client: Client
 }

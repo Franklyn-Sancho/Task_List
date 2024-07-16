@@ -1,5 +1,6 @@
-use database::database::Database;
-use interfaces::cli::menu::menu;
+use std::env;
+
+use interfaces::{app::server::run_web, cli::run_cli::run_cli };
 
 
 mod utils;
@@ -10,17 +11,15 @@ mod database;
 
 
 fn main() {
-    match Database::new() {
-        Ok(mut db) => {
-            if let Err(e) = db.create_tables() {
-                eprintln!("Error creating tables: {}", e);
-                return;
-            }
+    let args: Vec<String> = env::args().collect();
 
-            menu(&mut db);
+    if args.contains(&"--web".to_string()) {
+        // Iniciar a versão web da aplicação
+        if let Err(e) = run_web() {
+            eprintln!("Failed to start web server: {}", e);
         }
-        Err(e) => {
-            eprintln!("Error connecting to the database: {}", e);
-        }
+    } else {
+        // Iniciar a versão CLI
+        run_cli();
     }
 }
