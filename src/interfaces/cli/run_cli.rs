@@ -1,10 +1,8 @@
-use crate::database::database::Database;
-
-use super::menu::menu;
+use super::{database_cli::{DatabaseCli}, menu::menu};
 
 
 pub fn run_cli() {
-    match Database::new() {
+    match DatabaseCli::new() {
         Ok(mut db) => {
             if let Err(e) = db.create_tables() {
                 eprintln!("Error creating tables: {}", e);

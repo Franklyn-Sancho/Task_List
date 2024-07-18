@@ -2,11 +2,12 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpResponse, Responder};
 
-use crate::database::database::Database;
+use super::database_web::DatabaseWeb;
 
-pub async fn get_tasks_json(db: web::Data<Arc<Mutex<Database>>>) -> impl Responder {
+
+pub async fn get_tasks_json(db: web::Data<Arc<Mutex<DatabaseWeb>>>) -> impl Responder {
     let db = db.lock().unwrap().clone();
-    match db.get_tasks() {
+    match db.get_tasks().await {
         Ok(tasks) => HttpResponse::Ok().json(tasks),
         Err(e) => {
             println!("Error fetching tasks from database: {}", e);
@@ -15,13 +16,5 @@ pub async fn get_tasks_json(db: web::Data<Arc<Mutex<Database>>>) -> impl Respond
     }
 }
 
-pub async fn some_handler(db: web::Data<Database>) -> impl Responder {
-    // Utilize o pool de conexões dentro dos handlers
-    let task_exists = db.task_exists("Some task").unwrap_or(false);
 
-    if task_exists {
-        HttpResponse::Ok().body("Task exists")
-    } else {
-        HttpResponse::Ok().body("Task does not exist")
-    }
-}
+

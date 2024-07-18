@@ -7,6 +7,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
       - db
+    network_mode: "host"
 
   db:
     image: "postgres:latest"

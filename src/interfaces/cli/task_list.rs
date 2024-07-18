@@ -3,7 +3,9 @@ use colored::Colorize;
 use prettytable::{row, Cell, Row, Table};
 use serde::{Deserialize, Serialize};
 
-use crate::{database::database::Database, utils::read_input_user};
+use crate::{utils::read_input_user};
+
+use super::database_cli::DatabaseCli;
 
 
 fn deserialize_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
@@ -71,7 +73,7 @@ impl Task {
         }
     }
 
-    pub fn create_and_insert_task(db: &mut Database) {
+    pub fn create_and_insert_task(db: &mut DatabaseCli) {
         let task_details = Task::read_task();
         let (task, date, time, priority, status) = task_details;
 
@@ -84,7 +86,7 @@ impl Task {
         }
     }
 
-    pub fn update_task_interactive(db: &mut Database) {
+    pub fn update_task_interactive(db: &mut DatabaseCli) {
         let task =
             read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
 
@@ -190,7 +192,7 @@ impl Task {
         (task, date, time, priority, status)
     }
 
-    pub fn list_tasks(db: &mut Database) {
+    pub fn list_tasks(db: &mut DatabaseCli) {
         let tasks = match db.get_tasks() {
             Ok(tasks) => tasks,
             Err(e) => {
@@ -225,7 +227,7 @@ impl Task {
         table.printstd();
     }
 
-    pub fn remove_task(db: &mut Database) {
+    pub fn remove_task(db: &mut DatabaseCli) {
         loop {
             let task = read_input_user::read_user_input("digite o nome da tarefa: ");
 
@@ -237,7 +239,7 @@ impl Task {
         }
     }
 
-    pub fn complete_task(db: &mut Database) {
+    pub fn complete_task(db: &mut DatabaseCli) {
 
         Task::list_tasks(db);
 

@@ -3,7 +3,9 @@ use std::io::{self, Write};
 use colored::Colorize;
 use prettytable::{row, Table};
 
-use crate::{database::database::Database, interfaces::cli::task_list::Task};
+use crate::interfaces::cli::task_list::Task;
+
+use super::database_cli::DatabaseCli;
 
 
 /* use crate::{database::Database, task_list::Task}; */
@@ -21,7 +23,7 @@ fn display_menu() {
     table.printstd();
 }
 
-pub fn menu(db: &mut Database) {
+pub fn menu(db: &mut DatabaseCli) {
     let mut input = String::new();
 
     loop {
