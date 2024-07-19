@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use crate::{database::operations::Database, interfaces::cli::task_list::{Priority, Status, Task}};
+use crate::{
+    database::operations::Database,
+    interfaces::cli::task_list::{Priority, Status, Task},
+};
 
 pub struct DatabaseCli {
     common: Database,
@@ -18,6 +21,7 @@ impl DatabaseCli {
         self.common.create_tables()
     }
 
+
     pub fn insert_task(&self, task: &Task) -> Result<(), Box<dyn Error>> {
         self.common.insert_task(task)
     }
@@ -26,7 +30,9 @@ impl DatabaseCli {
         self.common.task_exists(task_name)
     }
 
-    pub fn get_tasks(&self) -> Result<Vec<(String, String, String, Priority, Status)>, Box<dyn Error>> {
+    pub fn get_tasks(
+        &self,
+    ) -> Result<Vec<(String, String, String, Priority, Status)>, Box<dyn Error>> {
         self.common.get_tasks()
     }
 

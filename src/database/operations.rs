@@ -5,6 +5,7 @@ use std::error::Error;
 
 use crate::interfaces::cli::task_list::{Priority, Status, Task};
 
+#[derive(Clone)]
 pub struct Database {
     pool: Pool<PostgresConnectionManager<NoTls>>,
 }
