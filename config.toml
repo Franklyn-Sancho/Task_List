@@ -1,0 +1,2 @@
+[database]
+pg = "postgres://user:password@localhost/dbname"

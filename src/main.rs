@@ -1,6 +1,7 @@
 use std::env;
 
-use interfaces::{app::server::run_web, cli::run_cli::run_cli };
+use interfaces::{app::server::run_web};
+
 
 
 mod utils;
@@ -20,6 +21,6 @@ fn main() {
         }
     } else {
         // Iniciar a versão CLI
-        run_cli();
+        /* run_cli(); */
     }
 }
