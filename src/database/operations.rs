@@ -1,13 +1,16 @@
-use deadpool_postgres::{Config, ManagerConfig, Pool, RecyclingMethod, Runtime};
-use tokio_postgres::NoTls;
+use chrono::{NaiveDate, NaiveTime};
+use deadpool_postgres::Pool;
+use uuid::Uuid;
 use std::error::Error;
 
 use crate::interfaces::cli::task_list::{Priority, Status, Task};
+
 
 #[derive(Clone)]
 pub struct Database {
     pub pool: Pool,
 }
+
 
 impl Database {
     pub fn new(pool: Pool) -> Self {
@@ -35,16 +38,19 @@ impl Database {
     }
 
     pub async fn insert_task(&self, task: &Task) -> Result<(), Box<dyn Error>> {
-        let client = self.get_client().await?;
-        let date_str = task.date.format("%Y-%m-%d").to_string();
-        let time_str = task.time.format("%H:%M:%S").to_string();
+    let client = self.get_client().await?;
+    let date_str = task.date.format("%Y-%m-%d").to_string();
+    let time_str = task.time.format("%H:%M:%S").to_string();
+    
+    // Gerar UUID v4
+    let id = Uuid::new_v4().to_string();
 
-        client.execute(
-            "INSERT INTO tasks (id, task, date, time, priority, status) VALUES ($1, $2, $3, $4, $5, $6)",
-            &[&task.id, &task.task, &date_str, &time_str, &task.priority, &task.status],
-        ).await?;
-        Ok(())
-    }
+    client.execute(
+        "INSERT INTO tasks (id, task, date, time, priority, status) VALUES ($1, $2, $3, $4, $5, $6)",
+        &[&id, &task.task, &date_str, &time_str, &task.priority, &task.status],
+    ).await?;
+    Ok(())
+}
 
     pub async fn task_exists(&self, task_name: &str) -> Result<bool, Box<dyn Error>> {
         let client = self.get_client().await?;
