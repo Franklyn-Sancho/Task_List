@@ -13,6 +13,20 @@ pub async fn run_web() -> std::io::Result<()> {
     let pool = Config::init_pool();
     let db = Arc::new(Mutex::new(Database { pool: pool.clone() }));
 
+    // Chamar a função create_tables antes de iniciar o servidor
+    {
+        let db = db.clone();
+        // Execute a criação das tabelas de forma assíncrona
+        let create_table_future = async {
+            let db = db.lock().unwrap();
+            if let Err(e) = db.create_tables().await {
+                eprintln!("Failed to create tables: {}", e);
+            }
+        };
+
+        create_table_future.await;
+    }
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(db.clone()))
@@ -22,4 +36,6 @@ pub async fn run_web() -> std::io::Result<()> {
     .run()
     .await
 }
+
+
 
