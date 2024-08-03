@@ -1,7 +1,13 @@
 use actix_web::{web, HttpResponse, Responder};
+use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 
-use crate::{database::operations::Database, interfaces::cli::task_list::Task};
+use crate::{database::operations::Database, interfaces::cli::task_list::{self, Task}};
+
+#[derive(Debug, Deserialize)]
+pub struct TaskQuery {
+    pub task: String,
+}
 
 pub async fn get_tasks_json(db: web::Data<Arc<Mutex<Database>>>) -> impl Responder {
     let db = db.lock().unwrap().clone();
@@ -28,3 +34,18 @@ pub async fn create_tasks(
         }
     }
 }
+
+pub async fn get_task_by_name(
+    db: web::Data<Arc<Mutex<Database>>>,
+    json: web::Json<TaskQuery>,
+) -> impl Responder {
+    let db = db.lock().unwrap().clone();
+    let task_name = json.task.clone();
+
+    match db.get_task_by_name(&task_name).await {
+        Ok(task) => HttpResponse::Ok().json(task),
+        Err(_) => HttpResponse::InternalServerError().body("Internal Server Error"),
+    }
+}
+
+
