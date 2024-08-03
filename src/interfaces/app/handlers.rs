@@ -97,4 +97,17 @@ pub async fn update_task(
     }
 }
 
+pub async fn remove_task(
+    db: web::Data<Arc<Mutex<Database>>>,
+    path: web::Path<String>
+) -> impl Responder {
+    let db = db.lock().unwrap().clone();
+    let task_name = path.into_inner();
+
+    match db.remove_task(&task_name).await {
+        Ok(_) => HttpResponse::Ok().body("Task Removed Successfully"),
+        Err(_) => HttpResponse::InternalServerError().body("Internal Server Error"),
+    }
+}
+
 
