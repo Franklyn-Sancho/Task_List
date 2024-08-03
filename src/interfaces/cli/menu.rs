@@ -36,10 +36,10 @@ pub fn menu(db: &mut DatabaseCli) {
         let choice: u32 = input.trim().parse().unwrap();
 
         match choice {
-            1 => Task::create_and_insert_task(db), // Chamada corrigida
+            /* 1 => Task::create_and_insert_task(db),  */
             2 => Task::list_tasks(db),
             3 => Task::complete_task(db),
-            4 => Task::update_task_interactive(db),
+            /* 4 => Task::update_task_interactive(db), */
             5 => Task::remove_task(db),
             6 => break,
             _ => continue,

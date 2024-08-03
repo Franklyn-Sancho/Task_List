@@ -25,10 +25,10 @@ impl DatabaseCli {
         Ok(())
     }
 
-    pub fn insert_task(&self, task: &Task) -> Result<(), Box<dyn Error>> {
+    /* pub fn insert_task(&self, task: &Task) -> Result<(), Box<dyn Error>> {
         self.runtime.block_on(self.database.insert_task(task))?;
         Ok(())
-    }
+    } */
 
     pub fn task_exists(&self, task_name: &str) -> Result<bool, Box<dyn Error>> {
         let exists = self.runtime.block_on(self.database.task_exists(task_name))?;
@@ -40,10 +40,10 @@ impl DatabaseCli {
         Ok(tasks)
     }
 
-    pub fn update_task_database(&self, task_name: &str, task: &Task) -> Result<(), Box<dyn Error>> {
+    /* pub fn update_task_database(&self, task_name: &str, task: &Task) -> Result<(), Box<dyn Error>> {
         self.runtime.block_on(self.database.update_task_database(task_name, task))?;
         Ok(())
-    }
+    } */
 
     pub fn update_task_status(&self, task: &str) -> Result<(), Box<dyn Error>> {
         self.runtime.block_on(self.database.update_task_status(task))?;

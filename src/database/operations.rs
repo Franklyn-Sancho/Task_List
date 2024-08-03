@@ -3,7 +3,7 @@ use deadpool_postgres::Pool;
 use std::error::Error;
 use uuid::Uuid;
 
-use crate::interfaces::cli::task_list::{Priority, Status, Task};
+use crate::interfaces::{app::handlers::TaskWeb, cli::task_list::{Priority, Status, Task}};
 
 #[derive(Clone)]
 pub struct Database {
@@ -39,7 +39,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn insert_task(&self, task: &Task) -> Result<(), Box<dyn Error>> {
+    pub async fn insert_task(&self, task: &TaskWeb) -> Result<(), Box<dyn Error>> {
         let client = self.get_client().await?;
         let date_str = task.date.format("%Y-%m-%d").to_string();
         let time_str = task.time.format("%H:%M:%S").to_string();
@@ -48,9 +48,9 @@ impl Database {
         let id = Uuid::new_v4().to_string();
 
         client.execute(
-        "INSERT INTO tasks (id, task, date, time, priority, status) VALUES ($1, $2, $3, $4, $5, $6)",
-        &[&id, &task.task, &date_str, &time_str, &task.priority, &task.status],
-    ).await?;
+            "INSERT INTO tasks (id, task, date, time, priority, status) VALUES ($1, $2, $3, $4, $5, $6)",
+            &[&id, &task.task, &date_str, &time_str, &task.priority, &task.status],
+        ).await?;
         Ok(())
     }
 
@@ -112,7 +112,7 @@ impl Database {
     pub async fn update_task_database(
         &self,
         task_name: &str,
-        task: &Task,
+        task: &TaskWeb,
     ) -> Result<(), Box<dyn Error>> {
         let client = self.get_client().await?;
         let date_str = task.date.format("%Y-%m-%d").to_string();

@@ -73,7 +73,7 @@ impl Task {
         }
     }
 
-    pub fn create_and_insert_task(db: &mut DatabaseCli) {
+    /* pub fn create_and_insert_task(db: &mut DatabaseCli) {
         let task_details = Task::read_task();
         let (task, date, time, priority, status) = task_details;
 
@@ -84,9 +84,9 @@ impl Task {
         } else {
             println!("Failed to create task.");
         }
-    }
+    } */
 
-    pub fn update_task_interactive(db: &mut DatabaseCli) {
+    /* pub fn update_task_interactive(db: &mut DatabaseCli) {
         let task =
             read_input_user::read_user_input("Digite o nome da tarefa que deseja atualizar: ");
 
@@ -111,7 +111,7 @@ impl Task {
         } else {
             println!("Failed to update task.");
         }
-    }
+    } */
 
     pub fn read_task_datetime() -> (NaiveDate, NaiveTime) {
         let date = Task::read_task_date();
